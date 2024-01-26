@@ -207,57 +207,6 @@ def logout():
 class TransactionForm(Form):
     amount = IntegerField('Amount', validators=[DataRequired()])
     description = StringField('Description', [validators.Length(min=1)])
-# @app.route('/addTransactions', methods=['GET', 'POST'])
-# @is_logged_in
-# def addTransactions():
-#     if request.method == 'POST':
-#         amount = request.form['amount']
-#         description = request.form['description']
-#         category = request.form['category']
-
-#         conn = get_db()
-#         cur = conn.cursor()
-
-#         cur.execute("INSERT INTO transactions(user_id, amount, description, category) VALUES (?, ?, ?, ?)",
-#                     (session['userID'], amount, description, category))
-#         conn.commit()
-#         cur.close()
-
-#         flash('Transaction Successfully Recorded', 'success')
-
-#         return redirect(url_for('addTransactions'))
-
-#     else:
-#         conn = get_db()
-#         cur = conn.cursor()
-
-#         cur.execute("SELECT SUM(amount) FROM transactions WHERE strftime('%Y-%m', date) = strftime('%Y-%m', 'now') AND user_id = ?",
-#                     [session['userID']])
-#         data = cur.fetchone()
-#         totalExpenses = data[0]
-
-#         # get the month's transactions made by a particular user
-#         result = cur.execute(
-#             "SELECT * FROM transactions WHERE strftime('%Y-%m', date) = strftime('%Y-%m', 'now') AND user_id = ? ORDER BY date DESC", [
-#                 session['userID']]
-#         )
-
-#         if result.fetchone() is not None:
-#             transactions = cur.fetchall()
-#             for transaction in transactions:
-#                 if datetime.datetime.now() - datetime.datetime.strptime(transaction['date'], '%Y-%m-%d %H:%M:%S') < datetime.timedelta(days=0.5):
-#                     transaction['date'] = timeago.format(
-#                         datetime.datetime.strptime(transaction['date'], '%Y-%m-%d %H:%M:%S'), datetime.datetime.now())
-#                 else:
-#                     transaction['date'] = datetime.datetime.strptime(
-#                         transaction['date'], '%Y-%m-%d %H:%M:%S').strftime('%d %B, %Y')
-#             return render_template('addTransactions.html', totalExpenses=totalExpenses, transactions=transactions)
-#         else:
-#             return render_template('addTransactions.html', result=result)
-
-#         cur.close()
-
-#     return render_template('addTransactions.html')
     
 @app.route('/addTransactions', methods=['GET', 'POST'])
 @is_logged_in
