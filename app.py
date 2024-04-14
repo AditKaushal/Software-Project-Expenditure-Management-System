@@ -203,6 +203,86 @@ def addTransactions():
         cur.close()
     return render_template('addTransactions.html')
 
+@app.route('/transactionHistory', methods=['GET', 'POST'])
+@is_logged_in
+def transactionHistory():
+
+    if request.method == 'POST':
+        month = request.form['month']
+        year = request.form['year']
+        # Create cursor
+        cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+        cur.execute(
+            "SELECT SUM(amount) FROM transactions WHERE user_id = %s", [session['userID']])
+
+        data = cur.fetchone()
+        totalExpenses = data['SUM(amount)']
+
+        if month == "00":
+            cur.execute(
+                f"SELECT SUM(amount) FROM transactions WHERE YEAR(date) = YEAR('{year}-00-00') AND user_id = {session['userID']}")
+
+            data = cur.fetchone()
+            totalExpenses = data['SUM(amount)']
+
+            result = cur.execute(
+                f"SELECT * FROM transactions WHERE YEAR(date) = YEAR('{year}-00-00') AND user_id = {session['userID']} ORDER BY date DESC")
+        else:
+
+            cur.execute(
+                f"SELECT SUM(amount) FROM transactions WHERE MONTH(date) = MONTH('0000-{month}-00') AND YEAR(date) = YEAR('{year}-00-00') AND user_id = {session['userID']}")
+
+            data = cur.fetchone()
+            totalExpenses = data['SUM(amount)']
+
+            result = cur.execute(
+                f"SELECT * FROM transactions WHERE MONTH(date) = MONTH('0000-{month}-00') AND YEAR(date) = YEAR('{year}-00-00') AND user_id = {session['userID']} ORDER BY date DESC")
+
+        if result > 0:
+            transactions = cur.fetchall()
+            for transaction in transactions:
+                transaction['date'] = transaction['date'].strftime(
+                    '%d %B, %Y')
+            return render_template('transactionHistory.html', totalExpenses=totalExpenses, transactions=transactions)
+        else:
+            cur.execute(f"SELECT MONTHNAME('0000-{month}-00')")
+            data = cur.fetchone()
+            if month != "00":
+                monthName = data[f'MONTHNAME(\'0000-{month}-00\')']
+                msg = f"No Transactions Found For {monthName}, {year}"
+            else:
+                msg = f"No Transactions Found For {year}"
+            return render_template('transactionHistory.html', result=result, msg=msg)
+        # Close connection
+        cur.close()
+    else:
+        # Create cursor
+        cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cur.execute(
+            "SELECT SUM(amount) FROM transactions WHERE user_id = %s", [session['userID']])
+
+        data = cur.fetchone()
+        totalExpenses = data['SUM(amount)']
+
+        # Get Latest Transactions made by a particular user
+        result = cur.execute(
+            "SELECT * FROM transactions WHERE user_id = %s ORDER BY date DESC", [
+                session['userID']]
+        )
+
+        if result > 0:
+            transactions = cur.fetchall()
+            for transaction in transactions:
+                transaction['date'] = transaction['date'].strftime(
+                    '%d %B, %Y')
+            return render_template('transactionHistory.html', totalExpenses=totalExpenses, transactions=transactions)
+        else:
+            flash('No Transactions Found', 'success')
+            return redirect(url_for('addTransactions'))
+        # Close connection
+        cur.close()
+
 
 class TransactionForm(Form):
     amount = IntegerField('Amount', validators=[DataRequired()])
@@ -439,9 +519,9 @@ def createBarCharts():
 @app.route('/daily_line')
 def dailyLineChart():
     cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    # Fetch daily expenses for the current month
+    # Fetch all transactions
     result = cur.execute(
-        "SELECT DATE(date) AS transaction_date, SUM(amount) AS total_amount FROM transactions WHERE MONTH(date) = MONTH(CURRENT_DATE()) AND YEAR(date) = YEAR(CURRENT_DATE()) AND user_id = %s GROUP BY DATE(date) ORDER BY DATE(date)",
+        "SELECT DATE(date) AS transaction_date, SUM(amount) AS total_amount FROM transactions WHERE user_id = %s GROUP BY DATE(date) ORDER BY DATE(date)",
         [session['userID']]
     )
     if result > 0:
@@ -456,6 +536,154 @@ def dailyLineChart():
 
     cur.close()
 
+    return redirect(url_for('addTransactions'))
+
+
+@app.route('/yearly_bar')
+def yearlyBar():
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE MONTH(date) = %s  AND YEAR(date) = YEAR(CURRENT_DATE())  AND user_id = %s", ('01', [
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        a1 = data['Sum(amount)']
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE MONTH(date) = %s  AND YEAR(date) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 YEAR))  AND user_id = %s", ('01', [
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        a2 = data['Sum(amount)']
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE MONTH(date) = %s  AND YEAR(date) = YEAR(CURRENT_DATE())  AND user_id = %s", ('02', [
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        b1 = data['Sum(amount)']
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE MONTH(date) = %s  AND YEAR(date) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 YEAR))  AND user_id = %s", ('02', [
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        b2 = data['Sum(amount)']
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE MONTH(date) = %s  AND YEAR(date) = YEAR(CURRENT_DATE())  AND user_id = %s", ('03', [
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        c1 = data['Sum(amount)']
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE MONTH(date) = %s  AND YEAR(date) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 YEAR))  AND user_id = %s", ('03', [
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        c2 = data['Sum(amount)']
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE MONTH(date) = %s  AND YEAR(date) = YEAR(CURRENT_DATE())  AND user_id = %s", ('04', [
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        d1 = data['Sum(amount)']
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE MONTH(date) = %s  AND YEAR(date) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 YEAR))  AND user_id = %s", ('04', [
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        d2 = data['Sum(amount)']
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE MONTH(date) = %s  AND YEAR(date) = YEAR(CURRENT_DATE())  AND user_id = %s", ('05', [
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        e1 = data['Sum(amount)']
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE MONTH(date) = %s  AND YEAR(date) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 YEAR))  AND user_id = %s", ('05', [
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        e2 = data['Sum(amount)']
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE MONTH(date) = %s  AND YEAR(date) = YEAR(CURRENT_DATE())  AND user_id = %s", ('06', [
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        f1 = data['Sum(amount)']
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE MONTH(date) = %s  AND YEAR(date) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 YEAR))  AND user_id = %s", ('06', [
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        f2 = data['Sum(amount)']
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE MONTH(date) = %s  AND YEAR(date) = YEAR(CURRENT_DATE())  AND user_id = %s", ('07', [
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        g1 = data['Sum(amount)']
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE MONTH(date) = %s  AND YEAR(date) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 YEAR))  AND user_id = %s", ('07', [
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        g2 = data['Sum(amount)']
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE MONTH(date) = %s  AND YEAR(date) = YEAR(CURRENT_DATE())  AND user_id = %s", ('08', [
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        h1 = data['Sum(amount)']
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE MONTH(date) = %s  AND YEAR(date) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 YEAR))  AND user_id = %s", ('08', [
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        h2 = data['Sum(amount)']
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE MONTH(date) = %s  AND YEAR(date) = YEAR(CURRENT_DATE())  AND user_id = %s", ('09', [
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        i1 = data['Sum(amount)']
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE MONTH(date) = %s  AND YEAR(date) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 YEAR))  AND user_id = %s", ('09', [
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        i2 = data['Sum(amount)']
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE MONTH(date) = %s  AND YEAR(date) = YEAR(CURRENT_DATE())  AND user_id = %s", ('10', [
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        j1 = data['Sum(amount)']
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE MONTH(date) = %s  AND YEAR(date) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 YEAR))  AND user_id = %s", ('10', [
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        j2 = data['Sum(amount)']
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE MONTH(date) = %s  AND YEAR(date) = YEAR(CURRENT_DATE())  AND user_id = %s", ('11', [
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        k1 = data['Sum(amount)']
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE MONTH(date) = %s  AND YEAR(date) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 YEAR))  AND user_id = %s", ('11', [
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        k2 = data['Sum(amount)']
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE MONTH(date) = %s  AND YEAR(date) = YEAR(CURRENT_DATE())  AND user_id = %s", ('12', [
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        l1 = data['Sum(amount)']
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE MONTH(date) = %s  AND YEAR(date) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 YEAR))  AND user_id = %s", ('12', [
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        l2 = data['Sum(amount)']
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE  YEAR(date) = YEAR(CURRENT_DATE())  AND user_id = %s", ([
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        m1 = data['Sum(amount)']
+    result = cur.execute("SELECT Sum(amount) FROM transactions WHERE YEAR(date) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 YEAR))  AND user_id = %s", ([
+        session['userID']]))
+    if result > 0:
+        data = cur.fetchone()
+        m2 = data['Sum(amount)']
+
+    year = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'June',
+            'July', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec', 'Total']
+    fig = go.Figure(data=[
+        go.Bar(name='Last Year', x=year, y=[
+               a2, b2, c2, d2, e2, f2, g2, h2, i2, j2, k2, l2, m2]),
+        go.Bar(name='This Year', x=year, y=[
+               a1, b1, c1, d1, e1, f1, g1, h1, i1, j1, k1, l1, m1])
+    ])
+    fig.update_layout(
+        barmode='group', title_text='Comparison Between This Year and Last Year')
+    fig.show()
     return redirect(url_for('addTransactions'))
 
 
