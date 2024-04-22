@@ -1,6 +1,6 @@
 
 
-# MoneyManager - Expenditure Management System
+# MoneyManager - Expenditure Management System by Adit Kaushal, Aryan Bhoraskar, Aishwarya Arvapalli and Aditya Dhanraj - THE A TEAM
 
 This software involves a detailed section and analysis on expenses, along with pie-chart and line chart visualization to track monthly expenses.
 
